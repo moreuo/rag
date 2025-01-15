@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "minimal-rag"
+version = "0.1.0"
+description = ""
+authors = ["moreuo <98001570+moreuo@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+ollama = "^0.4.4"
+chromadb = "^0.6.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
