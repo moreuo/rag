@@ -2,6 +2,8 @@ import logging
 import tempfile
 
 import chromadb
+import gradio as gr
+from chromadb.config import Settings
 from git import Repo
 from ollama import Client
 
@@ -66,6 +68,22 @@ def extract_data(repo):
     return extracted_data
 
 
+def chat_interface(message, history):
+    # Query Collection
+    context = query_chromadb(collection, message)
+
+    # Ask Question
+    user = f"The question is '{message}'. Here is all the context you have: {context}"
+    chat_history.append({"role": "user", "content": user})
+
+    # Create Response
+    response = create_response(chat_history)
+    logging.info(f"Response: {response}")
+    chat_history.append({"role": "system", "content": response})
+
+    return response
+
+
 if __name__ == "__main__":
     # Extract Repository Data
     url = ""
@@ -73,7 +91,9 @@ if __name__ == "__main__":
     repo = clone_repository(url)
 
     # Initialize ChromaDB
-    chroma_client = chromadb.PersistentClient(path="chroma.db")
+    chroma_client = chromadb.PersistentClient(
+        path="chroma.db", settings=Settings(anonymized_telemetry=False)
+    )
     collection = chroma_client.get_or_create_collection(name="repository")
 
     # Load and Insert Documents
@@ -87,24 +107,8 @@ if __name__ == "__main__":
         If there is not enough information in the context to answer the question,
         say "I am not sure", then try to make a guess.
         Break your answer up into nicely readable paragraphs."""
-    chat_history.append({"role": "assistant", "content": assistant})
+    chat_history.append({"role": "system", "content": assistant})
 
-    # Chat Loop
-    while True:
-        query = str(input("=> Ask Me: "))
-
-        if query.strip() == "":
-            print("\nGoodbye!")
-            break
-
-        # Query Collection
-        context = query_chromadb(collection, query)
-
-        # Ask Question
-        user = f"The question is '{query}'. Here is all the context you have: {context}"
-        chat_history.append({"role": "user", "content": query})
-
-        # Create Response
-        response = create_response(chat_history)
-        print("\n=> Response:", response, "\n")
-        chat_history.append({"role": "assistant", "content": response})
+    gr.ChatInterface(
+        fn=chat_interface, type="messages", title="Chatbot", save_history=True
+    ).launch()
